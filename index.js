@@ -1,7 +1,9 @@
 'use_strict';
 
+require('haxe-utils/lib/apply-env');
 const loaderUtils = require('loader-utils');
 const fs = require('fs');
+const haxe = require('haxe').haxe;
 const path = require('path');
 const exec = require('child_process').exec;
 const tmp = require('tmp');
@@ -43,6 +45,37 @@ module.exports = function(hxmlContent) {
     );
 
     registerDependencies(context, options, classpath);
+    
+    var hxml = generateHxml(args);
+    console.log(hxml);
+
+    var haxeProcess = haxe(hxml);
+    haxeProcess.stdout.on('data', (data) => {
+      console.log(data.toString('utf8'));
+    });
+    haxeProcess.stderr.on('data', (data) => {
+        console.error(data.toString('utf8'));
+    });
+    haxeProcess.on('close', function (code) {
+        console.log('code: ' + code);
+
+        if (code == 0){
+            // Read the resulting JS file and return the main module
+            const processed = processOutput(ns, jsTempFile, jsOutputFile, options);
+            if (processed) {
+                updateCache(context, ns, processed, classpath);
+            }
+            returnModule(context, ns, null /* entry point */, cb);
+        } else {
+            console.error('ERROR');
+        }
+        
+    });
+    haxeProcess.on('error', function (err) {
+      console.error(err);
+    });
+
+    return;
 
     // Execute the Haxe build.
     const haxeCommand = `haxe ${args.join(' ')}`;
@@ -98,6 +131,22 @@ module.exports = function(hxmlContent) {
         returnModule(context, ns, null /* entry point */, cb);
     });
 };
+
+function generateHxml(args){
+    console.log(args);
+    var output = '';
+    for (var i = 0; i < args.length; i++){
+        var arg = args[i];
+        if (arg.indexOf('-') == 0 && output != ''){
+            output += '\n';
+        }
+        output += arg + ' ';
+    }
+    console.log(output);
+    const path = tmp.tmpNameSync({ postfix: '.hxml' });
+    fs.writeFileSync(path, output);
+    return path;
+}
 
 function updateCache(context, ns, { contentHash, results }, classpath) {
     cache[ns] = { contentHash, results, classpath };
