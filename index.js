@@ -16,6 +16,7 @@ const haxeErrorParser = require('haxe-error-parser');
 const problemMatcher = haxeErrorParser.problemMatcher;
 const identifyError = haxeErrorParser.identifyError;
 
+const Reset = "\x1b[0m"
 const FgRed = "\x1b[31m";
 const FgGreen = "\x1b[32m";
 const FgYellow = "\x1b[33m";
@@ -56,7 +57,7 @@ module.exports = function(hxmlContent) {
     
     var hxml = generateHxml(args);
     
-    console.log(FgYellow,'-> BEGIN BUILD');
+    console.log(FgYellow + '-> BEGIN BUILD' + Reset);
     var haxeProcess = haxe(hxml);
     haxeProcess.stdout.on('data', (data) => {
       console.log(data.toString('utf8'));
@@ -68,7 +69,7 @@ module.exports = function(hxmlContent) {
         
 
         if (code == 0){
-            console.log(FgBlue,'-> BUILD COMPLETE');
+            console.log(FgBlue + '-> BUILD COMPLETE' + Reset);
             // Read the resulting JS file and return the main module
             const processed = processOutput(ns, jsTempFile, jsOutputFile, options);
             if (processed) {
@@ -76,7 +77,8 @@ module.exports = function(hxmlContent) {
             }
             returnModule(context, ns, null /* entry point */, cb);
         } else {
-            console.error(FgRed,'ERROR');
+            console.error(FgRed + '-> ERROR' + Reset);
+           
         }
         
     });
