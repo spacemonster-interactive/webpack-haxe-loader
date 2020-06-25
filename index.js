@@ -16,6 +16,14 @@ const haxeErrorParser = require('haxe-error-parser');
 const problemMatcher = haxeErrorParser.problemMatcher;
 const identifyError = haxeErrorParser.identifyError;
 
+const FgRed = "\x1b[31m";
+const FgGreen = "\x1b[32m";
+const FgYellow = "\x1b[33m";
+const FgBlue = "\x1b[34m";
+const FgMagenta = "\x1b[35m";
+const FgCyan = "\x1b[36m";
+const FgWhite = "\x1b[37m";
+
 const cache = Object.create(null);
 // resolve hooks once
 const graphHooks = hooks.getGraphHooks();
@@ -47,8 +55,8 @@ module.exports = function(hxmlContent) {
     registerDependencies(context, options, classpath);
     
     var hxml = generateHxml(args);
-    console.log(hxml);
-
+    
+    console.log(FgYellow,'-> BEGIN BUILD');
     var haxeProcess = haxe(hxml);
     haxeProcess.stdout.on('data', (data) => {
       console.log(data.toString('utf8'));
@@ -57,9 +65,10 @@ module.exports = function(hxmlContent) {
         console.error(data.toString('utf8'));
     });
     haxeProcess.on('close', function (code) {
-        console.log('code: ' + code);
+        
 
         if (code == 0){
+            console.log(FgBlue,'-> BUILD COMPLETE');
             // Read the resulting JS file and return the main module
             const processed = processOutput(ns, jsTempFile, jsOutputFile, options);
             if (processed) {
@@ -67,7 +76,7 @@ module.exports = function(hxmlContent) {
             }
             returnModule(context, ns, null /* entry point */, cb);
         } else {
-            console.error('ERROR');
+            console.error(FgRed,'ERROR');
         }
         
     });
@@ -133,19 +142,25 @@ module.exports = function(hxmlContent) {
 };
 
 function generateHxml(args){
-    console.log(args);
     var output = '';
     for (var i = 0; i < args.length; i++){
         var arg = args[i];
-        if (arg.indexOf('-') == 0 && output != ''){
-            output += '\n';
+        var indexOf = arg.indexOf('.hxml')
+        if (indexOf != -1 && indexOf + 5 == arg.length){
+            var appDir = path.dirname(require.main.filename);
+            var data = fs.readFileSync(arg, 'utf8');
+            output += '\n' + data + ' ';
+        } else {
+            if (arg.indexOf('-') == 0 && output != ''){
+                output += '\n';
+            }
+            output += arg + ' ';
         }
-        output += arg + ' ';
+        
     }
-    console.log(output);
-    const path = tmp.tmpNameSync({ postfix: '.hxml' });
-    fs.writeFileSync(path, output);
-    return path;
+    const tempPath = tmp.tmpNameSync({ postfix: '.hxml' });
+    fs.writeFileSync(tempPath, output);
+    return tempPath;
 }
 
 function updateCache(context, ns, { contentHash, results }, classpath) {
