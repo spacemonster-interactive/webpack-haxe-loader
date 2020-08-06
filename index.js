@@ -63,7 +63,11 @@ module.exports = function(hxmlContent) {
       console.log(data.toString('utf8'));
     });
     haxeProcess.stderr.on('data', (data) => {
-        console.error(data.toString('utf8'));
+        var err = data.toString('utf8');
+        console.error(err);
+        if (!isWarning(err)){
+            process.exit(1);
+        }
     });
     haxeProcess.on('close', function (code) {
         
@@ -142,6 +146,12 @@ module.exports = function(hxmlContent) {
         returnModule(context, ns, null /* entry point */, cb);
     });
 };
+
+function isWarning(err){
+    if (err == null) return false;
+    if (err.indexOf('Warning') == -1) return false;
+    return true;
+}
 
 function generateHxml(args){
     var output = '';
